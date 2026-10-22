@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meal Planner</title>
+<style>
+  :root { --bg:#f7f6f2; --card:#fff; --ink:#1f2a24; --mute:#6b766f; --accent:#2f7d4f; --line:#e3e1d8; --warn:#b3412c; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#161a17; --card:#1f2521; --ink:#e8ece9; --mute:#93a097; --accent:#5cc189; --line:#2f3832; --warn:#ef8a74; } }
+  * { box-sizing:border-box }
+  body { margin:0; font:16px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--ink) }
+  main { max-width:960px; margin:0 auto; padding:16px }
+  h1 { margin:8px 0 16px } h2 { margin:0 0 10px; font-size:1.1rem }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px }
+  form { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px }
+  label { display:flex; flex-direction:column; font-size:.85rem; color:var(--mute); gap:4px }
+  input,select,button { font:inherit; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--ink) }
+  button { cursor:pointer } button.primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600 }
+  button.small { padding:4px 10px; font-size:.85rem }
+  .full { grid-column:1/-1 }
+  .meals { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px }
+  .meal { border:1px solid var(--line); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:6px }
+  .day { font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; color:var(--mute) }
+  .meta { font-size:.85rem; color:var(--mute) }
+  .summary { display:flex; flex-wrap:wrap; gap:16px; margin-bottom:10px; font-weight:600 }
+  .over { color:var(--warn) }
+  .aisles { columns:240px; column-gap:24px }
+  .aisle { break-inside:avoid; margin-bottom:14px }
+  .aisle h3 { margin:0 0 4px; font-size:.9rem; color:var(--accent) }
+  .aisle label { flex-direction:row; align-items:center; gap:8px; color:var(--ink); font-size:1rem; padding:2px 0 }
+  .aisle input { width:auto } .aisle input:checked+span { text-decoration:line-through; color:var(--mute) }
+  .err { color:var(--warn) } .hidden { display:none }
+  @media print { form,.meals button,.noprint { display:none } body { background:#fff; color:#000 } }
+</style>
+</head>
+<body>
+<main>
+  <h1>🥗 Meal Planner</h1>
+  <section class="card noprint">
+    <form id="prefs">
+      <label class="full">What do you like eating? (comma-separated: chicken, pasta, mexican, curry…)
+        <input name="likes" placeholder="pasta, mexican, chicken"></label>
+      <label class="full">Anything to avoid? (comma-separated)
+        <input name="dislikes" placeholder="mushrooms, shrimp"></label>
+      <label>Diet
+        <select name="diet"><option value="any">Anything</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option></select></label>
+      <label>Weekly budget ($, 0 = no limit)<input name="budget" type="number" min="0" step="1" value="60"></label>
+      <label>Max cook time (minutes)<input name="maxTime" type="number" min="5" step="5" value="45"></label>
+      <label>People<input name="servings" type="number" min="1" max="12" value="2"></label>
+      <label>Dinners to plan<input name="days" type="number" min="1" max="7" value="7"></label>
+      <button class="primary full" type="submit">Generate plan</button>
+    </form>
+    <p id="err" class="err"></p>
+  </section>
+
+  <section id="out" class="hidden">
+    <div class="card">
+      <div class="summary"><span id="cost"></span><span id="time"></span></div>
+      <div id="meals" class="meals"></div>
+    </div>
+    <div class="card">
+      <h2>Shopping list <button class="small noprint" id="print">Print</button> <button class="small noprint" id="clear">Uncheck all</button></h2>
+      <div id="list" class="aisles"></div>
+    </div>
+  </section>
+</main>
+<script src="recipes.js"></script>
+<script src="planner.js"></script>
+<script>
+  const $ = (s) => document.querySelector(s);
+  const KEY = "meal-planner-v1";
+  const csv = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
+  let prefs, plan, checked = new Set();
+
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ prefs, ids: plan.map((r) => r.id), checked: [...checked] })); } catch (e) {} };
+  const readForm = () => {
+    const f = new FormData($("#prefs"));
+    return { likes: csv(f.get("likes")), dislikes: csv(f.get("dislikes")), diet: f.get("diet"),
+      budget: +f.get("budget") || 0, maxTime: +f.get("maxTime") || 60, servings: +f.get("servings") || 2,
+      days: Math.min(7, Math.max(1, +f.get("days") || 7)) };
+  };
+  const fillForm = (p) => {
+    const f = $("#prefs");
+    f.likes.value = p.likes.join(", "); f.dislikes.value = p.dislikes.join(", ");
+    ["diet", "budget", "maxTime", "servings", "days"].forEach((k) => (f[k].value = p[k]));
+  };
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+  function render() {
+    $("#out").classList.remove("hidden");
+    const cost = Planner.planCost(plan, prefs);
+    const over = prefs.budget && cost > prefs.budget;
+    $("#cost").innerHTML = `Est. cost: <span class="${over ? "over" : ""}">$${cost.toFixed(2)}</span>` +
+      (prefs.budget ? ` / $${prefs.budget}${over ? " — over budget, try a lower cook time or fewer people" : ""}` : "");
+    $("#time").textContent = "Avg cook time: " + Math.round(plan.reduce((s, r) => s + r.time, 0) / plan.length) + " min";
+    $("#meals").innerHTML = plan.map((r, i) => `
+      <div class="meal"><span class="day">${DAYS[i]}</span><strong>${esc(r.name)}</strong>
+        <span class="meta">${r.time} min · ~$${Planner.mealCost(r, prefs).toFixed(2)}</span>
+        <button class="small noprint" data-i="${i}">↻ Swap this meal</button></div>`).join("");
+    $("#list").innerHTML = Planner.shoppingList(plan, prefs.servings).map((g) => `
+      <div class="aisle"><h3>${esc(g.aisle)}</h3>${g.items.map((it) => {
+        const id = g.aisle + "|" + it.name;
+        return `<label><input type="checkbox" data-k="${esc(id)}" ${checked.has(id) ? "checked" : ""}><span>${it.qty} ${it.unit === "pc" ? "" : esc(it.unit) + " "}${esc(it.name)}</span></label>`;
+      }).join("")}</div>`).join("");
+  }
+
+  $("#prefs").addEventListener("submit", (e) => {
+    e.preventDefault(); $("#err").textContent = "";
+    prefs = readForm();
+    try { plan = Planner.generate(RECIPES, prefs); checked = new Set(); render(); save(); }
+    catch (err) { $("#err").textContent = err.message; }
+  });
+  $("#meals").addEventListener("click", (e) => {
+    const i = e.target.dataset.i; if (i === undefined) return;
+    plan[i] = Planner.regenerate(RECIPES, prefs, plan, +i); checked = new Set(); render(); save();
+  });
+  $("#list").addEventListener("change", (e) => {
+    const k = e.target.dataset.k; if (!k) return;
+    e.target.checked ? checked.add(k) : checked.delete(k); save();
+  });
+  $("#clear").onclick = () => { checked = new Set(); render(); save(); };
+  $("#print").onclick = () => window.print();
+
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (s) {
+      prefs = s.prefs; fillForm(prefs);
+      plan = s.ids.map((id) => RECIPES.find((r) => r.id === id)).filter(Boolean);
+      checked = new Set(s.checked);
+      if (plan.length) render();
+    }
+  } catch (e) {}
+</script>
+</body>
+</html>
