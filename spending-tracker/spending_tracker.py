@@ -167,7 +167,7 @@ def month_key(date):
 
 
 # Recurring, but not something you'd cancel like a subscription.
-NOT_SUBSCRIPTIONS = {"Housing", "Bills & utilities", "Groceries", "Transport", "Cash", "Health"}
+NOT_SUBSCRIPTIONS = {"Housing", "Bills & utilities", "Groceries", "Transport", "Cash", "Health", "Eating out", "Shopping"}
 
 
 def find_subscriptions(spend):
