@@ -8,7 +8,17 @@ by supermarket aisle. Swap any single item; the list and totals update.
 
 - Open `index.html` in a browser (no build, no dependencies). State is kept in localStorage.
 - `recipes.js` holds the recipe data: slots, nutrition per serving, steps, and ingredients (per serving).
-- `planner.js` holds the pure planning logic. Run the tests with `node test.js`.
+- `planner.js` holds the pure planning logic.
+- `nutrition.js` holds the fitness maths (BMR, maintenance, goal targets, macros, guardrails, unit conversion).
+- `store.js` holds versioned storage and migrations (v2 plans are migrated to v3 and the old key is kept).
+- Run every test with `node test.js` (it also runs `test-nutrition.js` and `test-store.js`).
+
+Fitness profile: enter age, sex, height, weight, activity, training days/type and goal (metric or imperial).
+Calories come from Mifflin-St Jeor times an activity multiplier, then a goal adjustment (fat loss -20%,
+muscle gain +10%, maintenance and recomposition 0%). The app shows each step. Protein, carbs, fat and fibre
+targets follow from goal and bodyweight and can be overridden. Guardrails: calories never go below 1,500
+(male) or 1,200 (female), under-18s get maintenance only, and manual extremes show a warning.
+General guidance, not medical advice.
 
 How it plans:
 

@@ -1,5 +1,5 @@
 // Recipe dataset. Ingredient quantities are PER SERVING: [name, qty, unit, aisle].
-// cost = rough price per serving in USD; time = total minutes; n = [kcal, protein, carbs, fat] per serving.
+// cost = rough price per serving in USD; time = total minutes; n = [kcal, protein, carbs, fat, fibre] per serving.
 // slots = which of breakfast / lunch / dinner / snack a recipe can fill.
 (function (root) {
   const P = "Produce", M = "Meat & Fish", D = "Dairy & Eggs", B = "Bakery",
@@ -204,6 +204,22 @@
     [["grapes", 100, "g", P], ["cashews", 15, "g", K]], ["Wash the grapes and serve with cashews."]);
   add("celery-pb", "Celery with peanut butter", ["snack"], 3, 0.5, V, [130, 5, 6, 10],
     [["celery", 2, "pc", P], ["peanut butter", 1, "tbsp", K]], ["Fill celery sticks with peanut butter."]);
+
+  // Fibre per serving (g), appended to each recipe's n as the 5th value.
+  const FIBRE = {
+    "chicken-stirfry": 5, "spag-bol": 6, "veg-curry": 12, "salmon-veg": 7, "veg-chili": 17, "omelette": 2, "tacos-beef": 5, "tacos-bean": 14,
+    "pasta-pesto": 6, "chicken-traybake": 7, "lentil-soup": 14, "fried-rice": 5, "shrimp-pasta": 5, "sausage-mash": 8, "burrito-bowl": 12,
+    "veg-lasagne": 6, "beef-stirfry": 6, "tofu-noodles": 7, "fish-tacos": 5, "jacket-potato": 13, "chicken-curry": 5, "caprese-sandwich": 5,
+    "pork-chops": 8, "shakshuka": 8, "gnocchi-sausage": 5, "veggie-burger": 9,
+    "porridge": 8, "eggs-toast": 3, "yogurt-granola": 4, "avocado-toast": 12, "smoothie-bowl": 10, "pb-toast": 8, "tofu-scramble": 7,
+    "egg-muffin": 2, "chia-pudding": 12, "pancakes": 4, "beans-toast": 14,
+    "chicken-wrap": 4, "tuna-sandwich": 4, "hummus-wrap": 8, "greek-pitta": 5, "quinoa-bowl": 13, "grilled-cheese": 4, "caesar-salad": 3, "pasta-salad": 5,
+    "roast-chickpea": 15, "aglio-olio": 8,
+    "apple-pb": 5, "yogurt-berries": 1, "hummus-carrots": 5, "cheese-crackers": 1, "banana-almonds": 5, "boiled-egg": 1, "edamame": 5,
+    "cottage-cucumber": 1, "trail-mix": 3, "rice-cake-avo": 3, "pita-hummus": 4, "berry-smoothie": 5, "popcorn": 4, "clementine-walnuts": 4,
+    "cream-cheese-cuke": 1, "choc-strawberries": 3, "turkey-rollups": 0, "guac-chips": 5, "grapes-cashews": 2, "celery-pb": 3,
+  };
+  recipes.forEach((r) => r.n.push(FIBRE[r.id]));
 
   root.RECIPES = recipes;
   if (typeof module !== "undefined") module.exports = recipes;

@@ -76,7 +76,13 @@ t("shopping list includes snack ingredients, merged and ordered by aisle", () =>
   assert.strictEqual(new Set(keys).size, keys.length);
   assert.strictEqual(P.shoppingList(plan, 2)[0].aisle, "Produce");
 });
+t("every recipe has 5 nutrition values incl. fibre", () => {
+  assert.ok(recipes.every((r) => r.n.length === 5 && r.n.every((x) => typeof x === "number" && x >= 0)));
+});
 t("impossible filters throw a helpful error", () => {
   assert.throws(() => P.generate(recipes, { ...base, maxTime: 5 }), /No .* options/);
 });
 console.log(n + " tests passed");
+
+require("./test-nutrition.js");
+require("./test-store.js");

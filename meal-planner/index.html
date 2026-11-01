@@ -56,6 +56,14 @@
   .detail h4 { margin:0; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--mute) }
   .swap { margin-top:4px; align-self:flex-start }
   .over { color:var(--warn) } .err { color:var(--warn); margin:8px 0 0 } .err:empty { display:none }
+  [hidden] { display:none !important }
+  .grid-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px }
+  .steps { margin:8px 0 0; padding-left:1.3em; display:flex; flex-direction:column; gap:4px; font-size:.92rem }
+  .targets { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; margin:8px 0 }
+  .warns { display:flex; flex-direction:column; gap:6px; margin:8px 0 }
+  .warns p { margin:0; padding:8px 10px; border-radius:6px; background:var(--snack); font-size:.88rem }
+  .warns p.limit { border:1px solid var(--warn) } .warns p.warn::before { content:"Heads up: "; font-weight:600; color:var(--warn) }
+  .note { font-size:.8rem; color:var(--mute); margin:8px 0 0 }
   .aisles { columns:220px; column-gap:24px }
   .aisle { break-inside:avoid; margin-bottom:14px }
   .aisle h3 { margin:0 0 4px; font:600 .78rem var(--body); text-transform:uppercase; letter-spacing:.08em; color:var(--accent) }
@@ -68,6 +76,47 @@
 <main>
   <header><h1>Weekly Meal Planner</h1><p class="lede">Every day gets breakfast, lunch and dinner plus a morning and an afternoon snack, with one shopping list sorted by aisle.</p></header>
   <section class="card">
+    <div class="head"><h2>Your fitness profile</h2><span class="totals">Used to set your calories and macros</span></div>
+    <form id="profile" class="grid-form">
+      <label for="units">Units
+        <select id="units"><option value="metric">Metric (cm, kg)</option><option value="imperial">Imperial (ft/in, lb)</option></select></label>
+      <label for="age">Age<input id="age" type="number" min="14" max="100" value="30"></label>
+      <label for="sex">Sex (used in the formula)
+        <select id="sex"><option value="male">Male</option><option value="female">Female</option></select></label>
+      <label for="heightCm" id="lblCm">Height (cm)<input id="heightCm" type="number" min="120" max="230" step="0.5" value="178"></label>
+      <label for="heightFt" id="lblFt" hidden>Height (ft)<input id="heightFt" type="number" min="4" max="7" value="5"></label>
+      <label for="heightIn" id="lblIn" hidden>Height (in)<input id="heightIn" type="number" min="0" max="11" value="10"></label>
+      <label for="weight"><span id="wLabel">Weight (kg)</span><input id="weight" type="number" min="35" max="560" step="0.1" value="80"></label>
+      <label for="activity">Daily activity
+        <select id="activity"><option value="sedentary">Sedentary (desk job)</option><option value="light">Light (some walking)</option>
+          <option value="moderate" selected>Moderate (on your feet)</option><option value="active">Very active</option><option value="very_active">Extremely active (physical job)</option></select></label>
+      <label for="trainingDays">Training days per week<input id="trainingDays" type="number" min="0" max="7" value="4"></label>
+      <label for="trainingType">Training type
+        <select id="trainingType"><option value="strength">Strength</option><option value="cardio">Cardio</option><option value="mixed" selected>Mixed</option></select></label>
+      <label for="goal">Goal
+        <select id="goal"><option value="fat_loss">Fat loss</option><option value="maintenance">Maintenance</option>
+          <option value="muscle_gain">Muscle gain</option><option value="recomposition">Recomposition</option></select></label>
+      <button class="primary full" type="submit">Calculate my targets</button>
+    </form>
+    <p id="profile-err" class="err" role="alert"></p>
+    <div id="calc" hidden>
+      <h3>How we worked this out</h3>
+      <ol id="steps" class="steps"></ol>
+      <h3 style="margin-top:14px">Your daily targets</h3>
+      <div class="targets">
+        <label for="t-kcal">Calories<input id="t-kcal" data-k="kcal" type="number" min="0" step="10"></label>
+        <label for="t-protein">Protein (g)<input id="t-protein" data-k="protein" type="number" min="0"></label>
+        <label for="t-carbs">Carbs (g)<input id="t-carbs" data-k="carbs" type="number" min="0"></label>
+        <label for="t-fat">Fat (g)<input id="t-fat" data-k="fat" type="number" min="0"></label>
+        <label for="t-fibre">Fibre (g)<input id="t-fibre" data-k="fibre" type="number" min="0"></label>
+      </div>
+      <div id="warns" class="warns" aria-live="polite"></div>
+      <div class="actions"><button class="small" id="reset-targets" type="button">Reset to calculated</button>
+        <button class="primary small" id="apply" type="button">Use these targets in my plan</button></div>
+      <p class="note">General guidance from standard formulas, not medical advice. Check with a doctor before big changes to your diet.</p>
+    </div>
+  </section>
+  <section class="card">
     <form id="prefs">
       <label class="full" for="likes">What do you like eating? (comma-separated)
         <input id="likes" name="likes" placeholder="pasta, mexican, chicken" value="pasta, mexican"></label>
@@ -77,7 +126,7 @@
         <input id="dislikes" name="dislikes" placeholder="mushrooms, olives"></label>
       <label for="diet">Diet
         <select id="diet" name="diet"><option value="any">Anything</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option></select></label>
-      <label for="calories">Daily calories (per person)<input id="calories" name="calories" type="number" min="1200" max="4000" step="50" value="2000"></label>
+      <label for="calories">Daily calories (per person, set by your profile)<input id="calories" name="calories" type="number" min="1200" max="4000" step="any" value="2000"></label>
       <label for="budget">Weekly budget ($, 0 = no limit)<input id="budget" name="budget" type="number" min="0" step="1" value="120"></label>
       <label for="maxTime">Max cook time (minutes)<input id="maxTime" name="maxTime" type="number" min="5" step="5" value="45"></label>
       <label for="servings">People<input id="servings" name="servings" type="number" min="1" max="12" value="2"></label>
@@ -87,7 +136,7 @@
     <p id="err" class="err" role="alert"></p>
   </section>
   <section class="card">
-    <div class="head"><h2>This week</h2><div class="summary"><span id="cost"></span><span id="kcal"></span></div></div>
+    <div class="head"><h2>This week</h2><div class="summary"><span id="cost"></span><span id="kcal"></span><span id="targets"></span></div></div>
     <div class="actions" style="margin-bottom:12px"><button class="small" id="toggle" type="button">Show all recipes</button></div>
     <div id="plan" class="days"></div>
   </section>
@@ -98,19 +147,21 @@
 </main>
 <script src="recipes.js"></script>
 <script src="planner.js"></script>
+<script src="nutrition.js"></script>
+<script src="store.js"></script>
 <script>
   const $ = (s) => document.querySelector(s);
-  const KEY = "meal-planner-v2";
+  const store = Store.create((() => { try { return localStorage; } catch (e) { return { getItem() { throw e; }, setItem() { throw e; } }; } })());
   const csv = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
   const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  let prefs, plan, checked = new Set(), expanded = false;
+  let prefs, plan, checked = new Set(), expanded = false, profile = null, overrides = {}, calc = null, shownUnits = "metric";
 
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ prefs, ids: plan.map((d) => d.map((r) => r.id)), checked: [...checked] })); } catch (e) {} };
+  const save = () => store.save({ profile, overrides, prefs, ids: plan ? plan.map((d) => d.map((r) => r.id)) : null, checked: [...checked] });
   const readForm = () => {
     const f = new FormData($("#prefs"));
     return { likes: csv(f.get("likes")), dislikes: csv(f.get("dislikes")), allergies: csv(f.get("allergies")), diet: f.get("diet"),
-      calories: Math.min(4000, Math.max(1200, +f.get("calories") || 2000)), budget: +f.get("budget") || 0,
+      calories: clampCalories(+f.get("calories") || 2000), budget: +f.get("budget") || 0,
       maxTime: +f.get("maxTime") || 60, servings: Math.max(1, +f.get("servings") || 2),
       days: Math.min(7, Math.max(1, +f.get("days") || 7)) };
   };
@@ -119,8 +170,9 @@
     ["likes", "dislikes", "allergies"].forEach((k) => (f[k].value = p[k].join(", ")));
     ["diet", "calories", "budget", "maxTime", "servings", "days"].forEach((k) => (f[k].value = p[k]));
   };
+  const clampCalories = (k) => Math.min(4000, Math.max(profile ? Nutrition.floorFor(profile) : 1200, k));
   const qty = (it) => `${it.qty} ${it.unit === "pc" ? "" : it.unit + " "}${it.name}`;
-  const macros = (n) => `${n[0]} kcal · P ${n[1]}g · C ${n[2]}g · F ${n[3]}g`;
+  const macros = (n) => `${n[0]} kcal · P ${n[1]}g · C ${n[2]}g · F ${n[3]}g · Fi ${n[4]}g`;
 
   function itemHtml(r, d, si) {
     const slot = Planner.SLOTS[si], snack = slot.type === "snack";
@@ -141,11 +193,13 @@
       (prefs.budget ? ` / $${prefs.budget}${over ? " (over budget: try a lower calorie target or longer cook time)" : ""}` : "");
     const avg = Math.round(plan.reduce((s, d) => s + Planner.totals(d).kcal, 0) / plan.length);
     $("#kcal").textContent = `Avg ${avg} kcal/day (target ${prefs.calories})`;
+    const tg = prefs.targets;
+    $("#targets").textContent = tg ? `Targets: ${tg.kcal} kcal · P ${tg.protein}g · C ${tg.carbs}g · F ${tg.fat}g · Fi ${tg.fibre}g` : "";
     $("#toggle").textContent = expanded ? "Hide recipes" : "Show all recipes";
     $("#plan").innerHTML = plan.map((day, d) => {
       const t = Planner.totals(day);
       return `<article class="day"><div class="day-head"><h3>${DAYS[d]}</h3>
-        <span class="totals">${t.kcal} kcal · P ${t.protein}g · C ${t.carbs}g · F ${t.fat}g</span></div>
+        <span class="totals">${t.kcal} kcal · P ${t.protein}g · C ${t.carbs}g · F ${t.fat}g · Fi ${t.fibre}g</span></div>
         <div class="bar" title="${t.kcal} of ${prefs.calories} kcal"><i style="width:${Math.min(100, Math.round((t.kcal / prefs.calories) * 100))}%"></i></div>
         ${day.map((r, si) => itemHtml(r, d, si)).join("")}</article>`;
     }).join("");
@@ -160,7 +214,7 @@
 
   $("#prefs").addEventListener("submit", (e) => {
     e.preventDefault(); $("#err").textContent = "";
-    const next = readForm();
+    const next = { ...readForm(), targets: (prefs && prefs.targets) || (profile ? currentTargets().targets : undefined) };
     try { const p = Planner.generate(RECIPES, next); prefs = next; checked = new Set(); show(p); }
     catch (err) { $("#err").textContent = err.message; }
   });
@@ -181,12 +235,69 @@
   });
   $("#clear").onclick = () => { checked = new Set(); render(); save(); };
 
+  // ---- Fitness profile and targets ----
+  const num = (id) => parseFloat($("#" + id).value);
+  function readProfile(units) {
+    const imp = units === "imperial";
+    return { units, age: num("age"), sex: $("#sex").value,
+      heightCm: Math.round((imp ? Nutrition.ftInToCm(num("heightFt") || 0, num("heightIn") || 0) : num("heightCm")) * 10) / 10,
+      weightKg: Math.round((imp ? Nutrition.lbToKg(num("weight")) : num("weight")) * 10) / 10,
+      activity: $("#activity").value, trainingDays: num("trainingDays"), trainingType: $("#trainingType").value, goal: $("#goal").value };
+  }
+  function fillProfile(p) {
+    const imp = p.units === "imperial"; shownUnits = p.units;
+    $("#units").value = p.units; $("#age").value = p.age; $("#sex").value = p.sex;
+    $("#lblCm").hidden = imp; $("#lblFt").hidden = !imp; $("#lblIn").hidden = !imp;
+    if (imp) { const f = Nutrition.cmToFtIn(p.heightCm); $("#heightFt").value = f.ft; $("#heightIn").value = f.inch; } else $("#heightCm").value = p.heightCm;
+    $("#wLabel").textContent = imp ? "Weight (lb)" : "Weight (kg)";
+    $("#weight").value = imp ? Math.round(Nutrition.kgToLb(p.weightKg) * 10) / 10 : p.weightKg;
+    $("#activity").value = p.activity; $("#trainingDays").value = p.trainingDays; $("#trainingType").value = p.trainingType; $("#goal").value = p.goal;
+  }
+  function currentTargets() { return Nutrition.checkTargets(profile, calc, overrides); }
+  function renderCalc() {
+    calc = Nutrition.calcTargets(profile);
+    $("#steps").innerHTML = Nutrition.explain(profile, calc).map((l) => `<li>${esc(l)}</li>`).join("");
+    const out = currentTargets();
+    if (overrides.kcal !== undefined && out.targets.kcal !== overrides.kcal) overrides.kcal = out.targets.kcal;
+    ["kcal", "protein", "carbs", "fat", "fibre"].forEach((k) => ($("#t-" + k).value = out.targets[k]));
+    $("#warns").innerHTML = out.warnings.map((w) => `<p class="${w.level}">${esc(w.text)}</p>`).join("");
+    $("#calc").hidden = false;
+  }
+  $("#profile").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const p = readProfile(shownUnits), errs = Nutrition.validateProfile(p);
+    $("#profile-err").textContent = errs.join(" ");
+    if (errs.length) return;
+    profile = p; overrides = {}; renderCalc(); save();
+  });
+  $("#units").addEventListener("change", () => {
+    const p = readProfile(shownUnits); p.units = $("#units").value;
+    if (Number.isFinite(p.heightCm) && Number.isFinite(p.weightKg)) fillProfile(p); else { shownUnits = p.units; }
+  });
+  document.querySelectorAll(".targets input").forEach((inp) => inp.addEventListener("change", () => {
+    if (!profile) return;
+    const v = parseFloat(inp.value);
+    if (Number.isFinite(v)) overrides[inp.dataset.k] = v; else delete overrides[inp.dataset.k];
+    if (inp.dataset.k === "kcal") ["protein", "carbs", "fat", "fibre"].forEach((k) => delete overrides[k]);
+    renderCalc(); save();
+  }));
+  $("#reset-targets").onclick = () => { overrides = {}; renderCalc(); save(); };
+  $("#apply").onclick = () => {
+    if (!profile) return;
+    const t = currentTargets().targets;
+    $("#calories").value = t.kcal;
+    prefs = { ...(prefs || readForm()), targets: t };
+    $("#prefs").requestSubmit();
+  };
+
   try {
-    const s = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (s) {
-      const p = s.ids.map((day) => day.map((id) => RECIPES.find((r) => r.id === id)));
-      Planner.validatePlan(p, s.prefs.days);
-      prefs = s.prefs; fillForm(prefs); plan = p; checked = new Set(s.checked); render();
+    const st = store.load();
+    profile = st.profile; overrides = st.overrides || {};
+    if (profile) { fillProfile(profile); renderCalc(); }
+    if (st.prefs && st.ids) {
+      const p = st.ids.map((day) => day.map((id) => RECIPES.find((r) => r.id === id)));
+      Planner.validatePlan(p, st.prefs.days);
+      prefs = st.prefs; fillForm(prefs); plan = p; checked = new Set(st.checked); render();
     }
   } catch (e) { plan = null; }
   if (!plan) $("#prefs").requestSubmit();

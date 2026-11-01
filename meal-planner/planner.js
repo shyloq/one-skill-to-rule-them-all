@@ -78,8 +78,8 @@
 
   // Per-person nutrition for a day (or any list of recipes).
   function totals(items) {
-    return items.reduce((t, r) => ({ kcal: t.kcal + r.n[0], protein: t.protein + r.n[1], carbs: t.carbs + r.n[2], fat: t.fat + r.n[3] }),
-      { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+    return items.reduce((t, r) => ({ kcal: t.kcal + r.n[0], protein: t.protein + r.n[1], carbs: t.carbs + r.n[2], fat: t.fat + r.n[3], fibre: t.fibre + r.n[4] }),
+      { kcal: 0, protein: 0, carbs: 0, fat: 0, fibre: 0 });
   }
 
   // Throws unless the plan has `days` days of exactly 3 meals + 2 snacks in order.
